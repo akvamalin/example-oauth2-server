@@ -1,3 +1,5 @@
+> Is based on https://github.com/authlib/example-oauth2-server
+
 # Auth0 Custom Social Provider Integration
 
 ## Background
