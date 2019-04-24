@@ -5,7 +5,7 @@
 ## Background
 Imagine you are developing an application that offers your users some functionality on users' resources, thus this application needs an authorization from a user (Resourse Owner) to their resources (Resource Server). In order a user to be able granting authorization to the application, application redirects user's agent to the Authorization Server (e.g. Auth0), where the user authenticates itself and either grants or not an access to their resources.
 
-In order the user to be authenticated, he/she must register themselves in your application (create an account, verify etc). Another possibility is to use third-party identity providers like Google, GitHub or LinkedIn, where the user is already registered, and kindly ask these providers for basic user information (name, age, profile image etc). However, it is also possible to configure a custom social provider, namely use some custom (or even your own) OAuth2 authorization server and request user profile information.
+In order the user to be authenticated, he/she must register themselves in your application (create an account, verify etc). Another possibility is to use third-party identity providers like Google, GitHub or LinkedIn, where the user is already registered, and kindly ask these providers for basic user information (name, age, profile image etc). However, it is also possible to configure a custom social provider, namely use some custom (or even your own) OAuth2 authorization server (with some solid user database, namely where this user is already registered) and request user profile information.
 
 ## Playground
 For simulating this situation, following tools are used:
