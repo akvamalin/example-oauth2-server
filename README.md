@@ -1,208 +1,46 @@
-# How to create an OAuth 2.0 Provider
+# Auth0 Custom Social Provider Integration
 
-This is an example of OAuth 2.0 server in [Authlib](https://authlib.org/).
-If you are looking for old Flask-OAuthlib implementation, check the
-`flask-oauthlib` branch.
+## Background
+Imagine you are developing an application that offers your users some functionality on users' resources, thus this application needs an authorization from a user (Resourse Owner) to their resources (Resource Server). In order a user to be able granting authorization to the application, application redirects user's agent to the Authorization Server (e.g. Auth0), where the user authenticates itself and either grants or not an access to their resources.
 
-- Documentation: <https://docs.authlib.org/en/latest/flask/oauth2.html>
-- Authlib Repo: <https://github.com/lepture/authlib>
+In order the user to be authenticated, he/she must register themselves in your application (create an account, verify etc). Another possibility is to use third-party identity providers like Google, GitHub or LinkedIn, where the user is already registered, and kindly ask these providers for basic user information (name, age, profile image etc). However, it is also possible to configure a custom social provider, namely use some custom (or even your own) OAuth2 authorization server and request user profile information.
 
-## Sponsors
+## Playground
+For simulating this situation, following tools are used:
+* open source example-oauth2-server written in python
+* Auth0 as Authorization Server
 
-<table>
-  <tr>
-    <td><img align="middle" width="48" src="https://user-images.githubusercontent.com/290496/39297078-89d00928-497d-11e8-8119-0c53afe14cd0.png"></td>
-    <td>If you want to quickly add secure token-based authentication to Python projects, feel free to check Auth0's Python SDK and free plan at <a href="https://auth0.com/overview?utm_source=GHsponsor&utm_medium=GHsponsor&utm_campaign=example-oauth2-server">auth0.com/overview</a>.</td>
-  </tr>
-</table>
+> Deploying python server and registering an Auth0 account is not described in this text, however it can be deployed to AWS using terraform (or manually) and Auth0 offers free tier account.
 
-## Take a quick look
+## Integration
 
-This is a ready to run example, let's take a quick experience at first. To
-run the example, we need to install all the dependencies:
+### Register Auth0 in your custom authorization server
+This should be done to allow Auth0 requesting an access token from your custom authorization server to fetch user profile information or access other resources.
 
-    $ pip install -r requirements.txt
+1. Navigate in browser to the deployed oauth2 server
+2. Login / Signup - writing some account name like admin would be sufficient
+3. Register an Application/Client (in our case Auth0) that would be allowed to access your users database.
+    * Important: Redirect URIs (the ones your custom Authorization server will redirect the user to) of the Auth0 in format YOUR-TENANT-NAME.auth0.com/login/callback (for Europe it will be YOUR-TENANT-NAME.eu.auth0.com/login/callback).
+    * Allowed Grant Types: authorization_code
+    * Allowed Response Types: code <new-line (press Enter)> token (used oauth2-server parses that input box like multiline values)
+    * Token Endpoint Auth Method: client_secret_basic (the default one)
+    * Submit
+  
+Now Auth0 is allowed to retrieve information from your custom authorization server.
 
-Set Flask and Authlib environment variables:
+### Configure Auth0 Custom Social 
 
-    # disable check https (DO NOT SET THIS IN PRODUCTION)
-    $ export AUTHLIB_INSECURE_TRANSPORT=1
+Follow [instructions](https://auth0.com/docs/extensions/custom-social-extensions) from Auth0
+> Note: Don't forget to [setup basic authentication](https://auth0.com/docs/extensions/custom-social-extensions#optional-set-up-basic-authentication)
 
-Create Database and run the development server:
+More advanced information: [Add generic authorization server](https://auth0.com/docs/connections/social/oauth2)
 
-    $ flask initdb
-    $ flask run
 
-Now, you can open your browser with `http://127.0.0.1:5000/`, login with any
-name you want.
+## Result
+After everything has been setup, when your users use your application and go to the login page, they would see an option to login against your other custom authorization server.
+![auth](/custom-auth.png)
 
-Before testing, we need to create a client:
+When clicking on "Log In With custom-oauth", the user would be redirected to your custom authorization server and after accepting consent, Auth0 would retrieve all necessary user information.
 
-![create a client](https://user-images.githubusercontent.com/290496/38811988-081814d4-41c6-11e8-88e1-cb6c25a6f82e.png)
-
-Get your `client_id` and `client_secret` for testing. In this example, we
-have enabled `password` grant types, let's try:
-
-    $ curl -u ${client_id}:${client_secret} -XPOST http://127.0.0.1:5000/oauth/token -F grant_type=password -F username=${username} -F password=valid -F scope=profile
-
-Because this is an example, every user's password is `valid`. For now, you
-can read the source in example or follow the long boring tutorial below.
-
-**IMPORTANT**: To test implicit grant, you need to `token_endpoint_auth_method` to `none`.
-
-## Preparation
-
-Assume this example doesn't exist at all. Let's write an OAuth 2.0 server
-from scratch step by step.
-
-### Create folder structure
-
-Here is our Flask website structure:
-
-```
-app.py         --- FLASK_APP
-website/
-  app.py       --- Flask App Factory
-  models.py    --- SQLAlchemy Models
-  oauth2.py    --- OAuth 2.0 Provider Configuration
-  routes.py    --- Routes views
-  templates/
-```
-
-### Installation
-
-Create a virtualenv and install all the requirements. You can also put the
-dependencies into `requirements.txt`:
-
-```
-Flask
-Flask-SQLAlchemy
-Authlib
-```
-
-### Hello World!
-
-Create a home route view to say "Hello World!". It is used to test if things
-working well.
-
-
-```python
-# website/routes.py
-from Flask import Blueprint
-bp = Blueprint(__name__, 'home')
-
-@bp.route('/')
-def home():
-    return 'Hello World!'
-```
-
-```python
-# website/app.py
-from flask import Flask
-
-def create_app(config=None):
-    app = Flask(__name__)
-    # load app sepcified configuration
-    if config is not None:
-        if isinstance(config, dict):
-            app.config.update(config)
-        elif config.endswith('.py'):
-            app.config.from_pyfile(config)
-    return app
-```
-
-```python
-# app.py
-from website.app import create_app
-
-app = create_app({
-    'SECRET_KEY': 'secret',
-})
-```
-
-
-The "Hello World!" example should run properly:
-
-    $ FLASK_APP=app.py flask run
-
-## Define Models
-
-We will use SQLAlchemy and SQLite for our models. You can also use other
-databases and other ORM engines. Authlib has some built-in SQLAlchemy mixins
-which will make it easier for creating models.
-
-Let's create the models in `website/models.py`. We need four models, which are
-
-- User: you need a user to test and create your application
-- OAuth2Client: the oauth client model
-- OAuth2AuthorizationCode: for `grant_type=code` flow
-- OAuth2Token: save the `access_token` in this model.
-
-Check how to define these models in `website/models.py`.
-
-## Implement Grants
-
-The source code is in `website/oauth2.py`. There are four standard grant types:
-
-- Authorization Code Grant
-- Implicit Grant
-- Client Credentials Grant
-- Resource Owner Password Credentials Grant
-
-And Refresh Token is implemented as a Grant in Authlib. You don't have to do
-any thing on Implicit and Client Credentials grants, but there are missing
-methods to be implemented in other grants, checkout the source code in
-`website/oauth2.py`.
-
-
-## `@require_oauth`
-
-Authlib has provided a `ResourceProtector` for you to create the decorator
-`@require_oauth`, which can be easily implemented:
-
-```py
-from authlib.flask.oauth2 import ResourceProtector
-
-require_oauth = ResourceProtector()
-```
-
-For now, only Bearer Token is supported. Let's add bearer token validator to
-this ResourceProtector:
-
-```py
-from authlib.flask.oauth2.sqla import create_bearer_token_validator
-
-# helper function: create_bearer_token_validator
-bearer_cls = create_bearer_token_validator(db.session, OAuth2Token)
-require_oauth.register_token_validator(bearer_cls())
-```
-
-Check the full implementation in `website/oauth2.py`.
-
-
-## OAuth Routes
-
-For OAuth server itself, we only need to implement routes for authentication,
-and issuing tokens. Since we have added token revocation feature, we need a
-route for revoking too.
-
-Checkout these routes in `website/routes.py`. Their path begin with `/oauth/`.
-
-
-## Other Routes
-
-But that is not enough. In this demo, you will need to have some web pages to
-create and manage your OAuth clients. Check that `/create_client` route.
-
-And we have an API route for testing. Check the code of `/api/me`.
-
-## Finish
-
-Now, init everything in `website/app.py`. And here you go. You've got an OAuth
-2.0 server.
-
-Read more information on <https://docs.authlib.org/>.
-
-## License
-
-Same license with [Authlib](https://authlib.org/plans).
+## Activity diagram
+![activity](/activity.png)

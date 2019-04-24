@@ -1,2 +1,7 @@
 *.sqlite
 *.pyc
+.terraform
+*.tfstate
+*.tfstate.backup
+get-pip.py
+.venv
