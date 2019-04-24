@@ -20,10 +20,10 @@ This should be done to allow Auth0 requesting an access token from your custom a
 1. Navigate in browser to the deployed oauth2 server
 2. Login / Signup - writing some account name like admin would be sufficient
 3. Register an Application/Client (in our case Auth0) that would be allowed to access your users database.
-    * Important: Redirect URIs (the ones your custom Authorization server will redirect the user to) of the Auth0 in format YOUR-TENANT-NAME.auth0.com/login/callback (for Europe it will be YOUR-TENANT-NAME.eu.auth0.com/login/callback).
+    * Important: Redirect URIs (the ones your custom Authorization server will redirect the user to) of the Auth0 in format **YOUR-TENANT-NAME.auth0.com/login/callback** (for Europe it will be **YOUR-TENANT-NAME.eu.auth0.com/login/callback**).
     * Allowed Grant Types: authorization_code
     * Allowed Response Types: code <new-line (press Enter)> token (used oauth2-server parses that input box like multiline values)
-    * Token Endpoint Auth Method: client_secret_basic (the default one)
+    * Token Endpoint Auth Method: `client_secret_basic` (the default one)
     * Submit
   
 Now Auth0 is allowed to retrieve information from your custom authorization server.
@@ -40,7 +40,7 @@ More advanced information: [Add generic authorization server](https://auth0.com/
 After everything has been setup, when your users use your application and go to the login page, they would see an option to login against your other custom authorization server.
 ![auth](/custom-auth.png)
 
-When clicking on "Log In With custom-oauth", the user would be redirected to your custom authorization server and after accepting consent, Auth0 would retrieve all necessary user information.
+When clicking on `Log In With custom-oauth`, the user would be redirected to your custom authorization server and after accepting consent, Auth0 would retrieve all necessary user information.
 
 ## Activity diagram
 ![activity](/activity.png)
